@@ -1,7 +1,14 @@
 from fastapi import FastAPI
+from backend.database import engine, Base
+from backend.models import users
+from backend.routes import auth
 
 app= FastAPI()
+
+Base.metadata.create_all(bind=engine)
 
 @app.get("/")
 def home():
     return {"message": "CivicLens API is running"}
+
+app.include_router(auth.router)
