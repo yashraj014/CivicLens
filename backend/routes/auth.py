@@ -2,8 +2,10 @@ from fastapi import APIRouter, Depends,HTTPException
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models.users import User
-from backend.schemas.user import UserCreate,UserLogin
+from backend.schemas.user import UserCreate,UserLogin,Token
 from backend.services.security import hash_password,verify_password
+from backend.services.jwt_handler import create_access_token
+from fastapi.security import OAuth2PasswordRequestForm
 
 router = APIRouter()
 
@@ -22,15 +24,23 @@ def signup(user:UserCreate, db: Session = Depends(get_db)):
 
     return {"message": "User created successfully"}
 
-@router.post("/login")
-def login(user: UserLogin, db: Session = Depends(get_db)):
+@router.post("/login",response_model=Token)
+def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
 
-    db_user = db.query(User).filter(User.email == user.email).first()
+    db_user = db.query(User).filter(User.email == form_data.username).first()
 
     if not db_user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
-    if not verify_password(user.password, db_user.password_hash):
+    if not verify_password(form_data.password, db_user.password_hash):
         raise HTTPException(status_code=400, detail="Invalid credentials")
 
-    return {"message": "Login successful"}
+    token = create_access_token(data={"user_id": db_user.id})
+
+    return {
+        "access_token": token,
+        "token_type": "bearer"
+    }
