@@ -15,9 +15,9 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class IssueCategory(str, enum.Enum):
-    ROAD="Road",
-    WATER="Water",
-    ELECTRICITY="Electricity",
+    ROAD="Road"
+    WATER="Water"
+    ELECTRICITY="Electricity"
     SANITATION="Sanitation"
     
 
