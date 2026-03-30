@@ -3,7 +3,7 @@ import enum
 from sqlalchemy import Column, Integer, String,Float, Text, ForeignKey,Boolean,DateTime,Enum as SQLEnum
 # from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
-from backend.database import Base
+from database import Base
 
 class User(Base):
     __tablename__="users"
