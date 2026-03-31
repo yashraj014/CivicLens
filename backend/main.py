@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import models
 from database import engine
+from routers import issues,users
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -14,6 +15,8 @@ app.add_middleware(
     allow_methods=["*"], # Allow all methods (GET, POST, PUT, DELETE)
     allow_headers=["*"],
 )
+
+app.include_router(users.router)
 
 @app.get("/")
 def read_root():
