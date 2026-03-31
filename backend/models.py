@@ -3,6 +3,7 @@ import enum
 from sqlalchemy import Column, Integer, String,Float, Text, ForeignKey,Boolean,DateTime,Enum as SQLEnum
 # from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from database import Base
 
 class User(Base):
@@ -14,6 +15,8 @@ class User(Base):
     full_name=Column(String,nullable=False)
     is_authority=Column(Boolean,default=False,nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    issues = relationship("Issue", back_populates="reporter") 
 
 class IssueCategory(str, enum.Enum):
     ROAD="Road"
@@ -47,3 +50,5 @@ class Issue(Base):
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    reporter = relationship("User", back_populates="issues")

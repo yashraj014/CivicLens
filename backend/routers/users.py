@@ -39,7 +39,13 @@ def login_user(user_credentials:schemas.UserLogin,db:Session=Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail='Invalid credentials')
     
     access_token = auth.create_access_token(
-        data={"users.id":str(user.id), "is_authority":user.is_authority}
+        data={"sub": str(user.id),
+            "is_authority": user.is_authority
+        }
     )
 
     return {"access_token":access_token,"token_type":"bearer"}
+
+@router.get("/me")
+def get_me(user=Depends(auth.get_current_user)):
+    return {"user": user}
