@@ -18,6 +18,7 @@ app.add_middleware(
 
 app.include_router(users.router)
 app.include_router(issues.router)
+
 @app.get("/")
 def read_root():
     return {"status": "success", "message": "Welcome to the CivicLens API"}
