@@ -39,7 +39,7 @@ const Dashboard = () => {
     fetchAnalytics();
   };
 
-  // 3. Upvote Logic (Local State Update)
+  // 3. Upvote Logic
   const handleUpvote = async (issueId) => {
     try {
       const response = await api.post(`/issues/${issueId}/upvote`);
@@ -55,7 +55,34 @@ const Dashboard = () => {
     }
   };
 
-  // 4. Initial Load
+  // 4. NEW: Authority Status Update Logic
+  const handleStatusChange = async (issueId, newStatus) => {
+    try {
+      // Send the PATCH request to your backend route
+      const response = await api.patch(`/issues/${issueId}/status`, {
+        status: newStatus 
+      });
+      
+      // Grab the updated issue from the response
+      const updatedIssue = response.data;
+      
+      // Instantly update the card in React's memory
+      setIssues((prevIssues) => 
+        prevIssues.map((issue) => 
+          issue.id === issueId ? updatedIssue : issue
+        )
+      );
+
+      // Refresh the Analytics cards so the Pending/Resolved numbers update!
+      fetchAnalytics();
+
+    } catch (error) {
+      console.error(`Failed to mark as ${newStatus}:`, error);
+      alert(error.response?.data?.detail || "Failed to update status.");
+    }
+  };
+
+  // 5. Initial Load
   useEffect(() => {
     fetchIssues();
     fetchAnalytics();
@@ -69,7 +96,6 @@ const Dashboard = () => {
         <h1 className="text-2xl font-bold tracking-wide">CivicLens</h1>
         
         <div className="flex items-center gap-4">
-          {/* NEW: Prominent Analytics Button */}
           <Link 
             to="/analytics" 
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-1.5 rounded-md text-sm font-bold shadow border border-blue-500 transition duration-150 ease-in-out"
@@ -80,7 +106,6 @@ const Dashboard = () => {
             Analytics
           </Link>
 
-          {/* Separator Line */}
           <div className="h-6 w-px bg-blue-600 mx-1 hidden sm:block"></div>
 
           <span className="font-medium hidden sm:block">Welcome, {user?.full_name}</span>
@@ -95,7 +120,6 @@ const Dashboard = () => {
         
         {/* Left Side: The Map */}
         <div className="w-2/3 lg:w-3/5 h-full relative border-r border-gray-300 shadow-inner">
-          {/* Pass the selectedPosition down! */}
           <MapWidget issues={issues} selectedPosition={selectedPosition} /> 
         </div>
 
@@ -104,7 +128,6 @@ const Dashboard = () => {
           
           {/* Header & Analytics Section */}
           <div className="p-5 border-b border-gray-200 bg-gray-50 sticky top-0 z-10 shadow-sm">
-            
             <div className="flex justify-between items-start">
               <div>
                 <h2 className="text-xl font-bold text-gray-800">Live Reports</h2>
@@ -117,27 +140,6 @@ const Dashboard = () => {
                 + Report Issue
               </button>
             </div>
-
-            {/* Analytics Grid */}
-            {analytics && (
-              <div className="grid grid-cols-3 gap-3 mt-4 w-full">
-                <div className="bg-blue-100 p-3 rounded-lg text-center shadow-sm border border-blue-200">
-                  <p className="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Total</p>
-                  <p className="text-xl font-black text-blue-900">{analytics.total}</p>
-                </div>
-                <div className="bg-yellow-100 p-3 rounded-lg text-center shadow-sm border border-yellow-200">
-                  <p className="text-[10px] text-yellow-700 font-bold uppercase tracking-wider">Pending</p>
-                  <p className="text-xl font-black text-yellow-900">
-                    {(analytics.by_status['Reported'] || 0) + (analytics.by_status['In Progress'] || 0)}
-                  </p>
-                </div>
-                <div className="bg-green-100 p-3 rounded-lg text-center shadow-sm border border-green-200">
-                  <p className="text-[10px] text-green-700 font-bold uppercase tracking-wider">Resolved</p>
-                  <p className="text-xl font-black text-green-900">{analytics.by_status['Resolved'] || 0}</p>
-                </div>
-              </div>
-            )}
-
           </div>
           
           {/* Issues Feed */}
@@ -148,21 +150,39 @@ const Dashboard = () => {
               issues.map((issue) => (
                 <div 
                   key={issue.id} 
-                  // 1. Make the card clickable and change the cursor so the user knows
                   onClick={() => setSelectedPosition([issue.latitude, issue.longitude])}
                   className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer hover:border-blue-300"
                 >
-                  <h3 className="font-semibold text-gray-800">{issue.title}</h3>
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-semibold text-gray-800">{issue.title}</h3>
+                    {issue.assigned_authority && (
+                      <span className="bg-blue-50 text-blue-700 border border-blue-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide">
+                        {issue.assigned_authority}
+                      </span>
+                    )}
+                  </div>
+                  
                   <p className="text-sm text-gray-600 mt-1 truncate">{issue.description}</p>
                   <p className="text-xs font-medium text-blue-600 mt-2">Category: {issue.category}</p>
                   
-                  <div className="mt-3 flex justify-between items-center">
-                    <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded">
+                  {issue.authority_update && (
+                    <div className="mt-3 p-3 bg-gray-50 border-l-4 border-blue-500 rounded-r-md">
+                      <p className="text-xs font-semibold text-gray-700 mb-1">Recent Authority Action:</p>
+                      <p className="text-xs text-gray-600 italic">"{issue.authority_update}"</p>
+                    </div>
+                  )}
+                  
+                  {/* Status and Upvotes */}
+                  <div className="mt-4 flex justify-between items-center pt-3 border-t border-gray-100">
+                    <span className={`px-2 py-1 text-xs font-bold rounded ${
+                      issue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+                      issue.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
                       {issue.status}
                     </span>
                     
                     <button 
-                      // 2. Stop the card click from happening when we click Upvote!
                       onClick={(e) => {
                         e.stopPropagation(); 
                         handleUpvote(issue.id);
@@ -173,6 +193,42 @@ const Dashboard = () => {
                       {issue.upvote_count} {issue.upvote_count === 1 ? 'Upvote' : 'Upvotes'}
                     </button>
                   </div>
+
+                  {/* Authority-Only Control Panel */}
+                  {user?.is_authority && (
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex gap-2 items-center">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-2">
+                        Authority Actions:
+                      </span>
+                      
+                      {/* Only show "In Progress" if it's currently "Reported" */}
+                      {issue.status === 'Reported' && (
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            handleStatusChange(issue.id, 'In Progress');
+                          }}
+                          className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold py-1 px-3 rounded transition-colors shadow-sm"
+                        >
+                          Mark In Progress
+                        </button>
+                      )}
+
+                      {/* Only show "Resolve" if it's not already resolved */}
+                      {issue.status !== 'Resolved' && (
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            handleStatusChange(issue.id, 'Resolved');
+                          }}
+                          className="bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-1 px-3 rounded transition-colors shadow-sm"
+                        >
+                          Mark Resolved
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                 </div>
               ))
             )}
@@ -181,7 +237,6 @@ const Dashboard = () => {
         </div>
       </main>
 
-      {/* Notice onIssueReported now triggers the combined refreshDashboard function */}
       <ReportModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
