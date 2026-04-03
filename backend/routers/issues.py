@@ -61,7 +61,7 @@ def get_single_issue(issue_id:int,db:Session = Depends(get_db)):
 @router.patch('/{issue_id}/status', response_model=schemas.IssueResponse)
 def update_issue_status(
     issue_id:int,
-    status_update: schemas.IssueStatus,
+    status_update: schemas.IssueStatusUpdate,
     db: Session = Depends(get_db),
     current_user:models.User = Depends(auth.get_current_user)
 ):
