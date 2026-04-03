@@ -1,5 +1,5 @@
-import React from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React, { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -13,8 +13,22 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-// 1. Accept the 'issues' prop
-const MapWidget = ({ issues = [] }) => {
+// NEW: The invisible component that controls the camera
+const FlyToLocation = ({ position }) => {
+  const map = useMap(); // Grabs the map instance
+  
+  useEffect(() => {
+    if (position) {
+      // flyTo takes the coordinates and the zoom level (16 is nice and close)
+      map.flyTo(position, 16, { animate: true, duration: 1.5 });
+    }
+  }, [position, map]);
+
+  return null; // It doesn't draw anything on the screen
+};
+
+// We now accept 'selectedPosition' from the Dashboard
+const MapWidget = ({ issues = [], selectedPosition }) => {
   const centerPosition = [25.5358, 84.8511];
 
   return (
@@ -24,7 +38,9 @@ const MapWidget = ({ issues = [] }) => {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       
-      {/* 2. Loop through the issues array and drop a marker for each one */}
+      {/* Mount our invisible camera controller */}
+      <FlyToLocation position={selectedPosition} />
+      
       {issues.map((issue) => (
         <Marker key={issue.id} position={[issue.latitude, issue.longitude]}>
           <Popup>

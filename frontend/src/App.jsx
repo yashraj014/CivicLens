@@ -4,7 +4,7 @@ import { AuthContext } from './context/AuthContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-
+import Analytics from './pages/Analytics';
 
 
 function App() {
@@ -18,8 +18,10 @@ function App() {
           path="/" 
           element={user ? <Dashboard /> : <Navigate to="/login" />} 
         />
-        
-        
+        {/* NEW: Analytics route */}
+        <Route 
+          path="/analytics" 
+          element={user ? <Analytics /> : <Navigate to="/login" />} />
         <Route 
           path="/login" 
           element={!user ? <Login /> : <Navigate to="/" />} 
