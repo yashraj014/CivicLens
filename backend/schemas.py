@@ -30,7 +30,8 @@ class IssueBase(BaseModel):
     category:IssueCategory
     latitude:float
     longitude:float
-
+    landmark: Optional[str] = None
+ 
     image_url: Optional[str] = None
 
 class IssueCreate(IssueBase):

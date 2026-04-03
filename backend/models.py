@@ -42,6 +42,7 @@ class Issue(Base):
     
     latitude=Column(Float,nullable=False)
     longitude=Column(Float,nullable=False)
+    landmark = Column(String, nullable=True)
     
     image_url = Column(String, nullable=True)
     upvote_count = Column(Integer, default=0, nullable=False)
