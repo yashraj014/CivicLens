@@ -65,7 +65,7 @@ def update_issue_status(
     db: Session = Depends(get_db),
     current_user:models.User = Depends(auth.get_current_user)
 ):
-    if not current_user.is_authority:
+    if not current_user.get("is_authority"):
         raise HTTPException(
             status_code = status.HTTP_403_FORBIDDEN,
             detail="You don't have permission to change issue status."
