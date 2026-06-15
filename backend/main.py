@@ -3,19 +3,17 @@ from fastapi.middleware.cors import CORSMiddleware
 import models
 from database import engine
 from routers import issues,users,analytics
+import os
+from fastapi.staticfiles import StaticFiles
 
+os.makedirs("uploads", exist_ok=True)
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="CivicLens API", version="1.0.0")
-
-origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173", # Good idea to include both
-]
-
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins, # For development, allow all origins. We will restrict this in production.
+    allow_origins='*', # For development, allow all origins. We will restrict this in production.
     allow_credentials=True,
     allow_methods=["*"], # Allow all methods (GET, POST, PUT, DELETE)
     allow_headers=["*"],

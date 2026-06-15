@@ -1,4 +1,4 @@
-import React, { useContext, useState, useEffect } from 'react';
+import React, { useContext, useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import MapWidget from '../components/MapWidget';
@@ -14,24 +14,24 @@ const Dashboard = () => {
   const [analytics, setAnalytics] = useState(null);
   const [selectedPosition, setSelectedPosition] = useState(null);
 
-  // 2. Fetch Functions
-  const fetchIssues = async () => {
+  // 2. Fetch Functions (Wrapped in useCallback to stabilize dependencies)
+  const fetchIssues = useCallback(async () => {
     try {
       const response = await api.get('/issues/fetch'); 
       setIssues(response.data);
     } catch (error) {
       console.error("Failed to fetch issues:", error);
     }
-  };
+  }, []);
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       const response = await api.get('/analytics/summary'); 
       setAnalytics(response.data);
     } catch (error) {
       console.error("Failed to fetch analytics:", error);
     }
-  };
+  }, []);
 
   // Helper function to update everything at once after a new report
   const refreshDashboard = () => {
@@ -52,14 +52,42 @@ const Dashboard = () => {
       );
     } catch (error) {
       console.error("Failed to upvote:", error);
+      alert(error.response?.data?.detail || "Failed to upvote issue.");
     }
   };
 
-  // 4. Initial Load
+  // 4. NEW: Authority Status Update Logic
+  const handleStatusChange = async (issueId, newStatus) => {
+    try {
+      // Send the PATCH request to your backend route
+      const response = await api.patch(`/issues/${issueId}/status`, {
+        status: newStatus 
+      });
+      
+      // Grab the updated issue from the response
+      const updatedIssue = response.data;
+      
+      // Instantly update the card in React's memory
+      setIssues((prevIssues) => 
+        prevIssues.map((issue) => 
+          issue.id === issueId ? updatedIssue : issue
+        )
+      );
+
+      // Refresh the Analytics cards so the Pending/Resolved numbers update!
+      fetchAnalytics();
+
+    } catch (error) {
+      console.error(`Failed to mark as ${newStatus}:`, error);
+      alert(error.response?.data?.detail || "Failed to update status.");
+    }
+  };
+
+  // 5. Initial Load
   useEffect(() => {
     fetchIssues();
     fetchAnalytics();
-  }, []); 
+  }, [fetchIssues, fetchAnalytics]); 
 
   return (
     <div className="h-screen w-screen flex flex-col bg-gray-50 overflow-hidden">
@@ -117,27 +145,6 @@ const Dashboard = () => {
                 + Report Issue
               </button>
             </div>
-
-            {/* Analytics Grid */}
-            {analytics && (
-              <div className="grid grid-cols-3 gap-3 mt-4 w-full">
-                <div className="bg-blue-100 p-3 rounded-lg text-center shadow-sm border border-blue-200">
-                  <p className="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Total</p>
-                  <p className="text-xl font-black text-blue-900">{analytics.total}</p>
-                </div>
-                <div className="bg-yellow-100 p-3 rounded-lg text-center shadow-sm border border-yellow-200">
-                  <p className="text-[10px] text-yellow-700 font-bold uppercase tracking-wider">Pending</p>
-                  <p className="text-xl font-black text-yellow-900">
-                    {(analytics.by_status['Reported'] || 0) + (analytics.by_status['In Progress'] || 0)}
-                  </p>
-                </div>
-                <div className="bg-green-100 p-3 rounded-lg text-center shadow-sm border border-green-200">
-                  <p className="text-[10px] text-green-700 font-bold uppercase tracking-wider">Resolved</p>
-                  <p className="text-xl font-black text-green-900">{analytics.by_status['Resolved'] || 0}</p>
-                </div>
-              </div>
-            )}
-
           </div>
           
           {/* Issues Feed */}
@@ -156,6 +163,16 @@ const Dashboard = () => {
                   <p className="text-sm text-gray-600 mt-1 truncate">{issue.description}</p>
                   <p className="text-xs font-medium text-blue-600 mt-2">Category: {issue.category}</p>
                   
+                  {issue.image_url && (
+                    <div className="mt-3 rounded-md overflow-hidden h-32 w-full bg-gray-100 border border-gray-200 shadow-inner">
+                      <img 
+                        src={issue.image_url} 
+                        alt="Issue evidence" 
+                        className="object-cover h-full w-full"
+                      />
+                    </div>
+                  )}
+                  
                   <div className="mt-3 flex justify-between items-center">
                     <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded">
                       {issue.status}
@@ -173,6 +190,42 @@ const Dashboard = () => {
                       {issue.upvote_count} {issue.upvote_count === 1 ? 'Upvote' : 'Upvotes'}
                     </button>
                   </div>
+
+                  {/* Authority-Only Control Panel */}
+                  {user?.is_authority && (
+                    <div className="mt-4 pt-3 border-t border-slate-100 flex gap-2 items-center">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-2">
+                        Authority Actions:
+                      </span>
+                      
+                      {/* Only show "In Progress" if it's currently "Reported" */}
+                      {issue.status === 'Reported' && (
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            handleStatusChange(issue.id, 'In Progress');
+                          }}
+                          className="bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold py-1 px-3 rounded transition-colors shadow-sm"
+                        >
+                          Mark In Progress
+                        </button>
+                      )}
+
+                      {/* Only show "Resolve" if it's not already resolved */}
+                      {issue.status !== 'Resolved' && (
+                        <button 
+                          onClick={(e) => { 
+                            e.stopPropagation(); 
+                            handleStatusChange(issue.id, 'Resolved');
+                          }}
+                          className="bg-green-500 hover:bg-green-600 text-white text-xs font-bold py-1 px-3 rounded transition-colors shadow-sm"
+                        >
+                          Mark Resolved
+                        </button>
+                      )}
+                    </div>
+                  )}
+
                 </div>
               ))
             )}
