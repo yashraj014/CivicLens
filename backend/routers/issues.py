@@ -1,12 +1,10 @@
 from fastapi import status,HTTPException,Depends,APIRouter,Query,UploadFile,File
 from typing import List,Optional
 from sqlalchemy.orm import Session
-from database import get_db
+from database import get_db,supabase
 import schemas
-import shutil
 import auth
 import uuid
-import os
 import models
 
 router = APIRouter(
@@ -30,24 +28,43 @@ def create_issue(
     db.refresh(new_issue)
 
     return new_issue
+
 @router.post("/upload-image")
 async def upload_image(file: UploadFile = File(...)):
-    # 1. Reject if it's not an image
-    if not file.content_type.startswith("image/"):
-        raise HTTPException(status_code=400, detail="File provided is not an image.")
 
-    # 2. Generate a unique, random filename (e.g., 5f3a2b-image.jpg)
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=400,
+            detail="File provided is not an image."
+        )
+
     file_extension = file.filename.split(".")[-1]
     unique_filename = f"{uuid.uuid4()}.{file_extension}"
-    file_path = f"uploads/{unique_filename}"
 
-    # 3. Save the file to our local 'uploads' directory
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    file_bytes = await file.read()
 
-    # 4. Return the full URL so React knows where to find it!
-    # Update the IP if you deploy to production later
-    return {"image_url": f"http://127.0.0.1:8000/uploads/{unique_filename}"}
+    try:
+        supabase.storage.from_("issue-images").upload(
+            path=unique_filename,
+            file=file_bytes,
+            file_options={
+                "content-type": file.content_type
+            }
+        )
+
+        image_url = supabase.storage.from_("issue-images").get_public_url(unique_filename)
+
+        return {
+            "image_url": image_url
+        }
+
+    except Exception as e:
+        print("SUPABASE ERROR:", repr(e))
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
 @router.get('/fetch',response_model=List[schemas.IssueResponse])
 def get_issues(
     skip: int=Query(0, description="Number of records to skip"),
