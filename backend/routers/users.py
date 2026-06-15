@@ -5,7 +5,12 @@ from database import get_db
 import schemas
 import auth
 import models
+from dotenv import load_dotenv
+import os
 
+load_dotenv()
+
+ADMIN_KEY = os.getenv("ADMIN_KEY")
 router = APIRouter(
     prefix='/users',
     tags=['users']
@@ -20,7 +25,7 @@ def register_user(user:schemas.UserCreate, db:Session = Depends(get_db)):
 
     is_auth_user = False
     if user.authority_secret:
-        if user.authority_secret == "CityHall2024":
+        if user.authority_secret == ADMIN_KEY:
             is_auth_user=True
         else:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Invalid authority secret code")
