@@ -9,6 +9,7 @@ class UserBase(BaseModel):
     full_name:str
 
 class UserCreate(UserBase):
+    authority_secret:Optional[str]=None
     password:str
 
 class UserLogin(BaseModel):

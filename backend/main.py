@@ -13,7 +13,7 @@ app = FastAPI(title="CivicLens API", version="1.0.0")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # For development, allow all origins. We will restrict this in production.
+    allow_origins='*', # For development, allow all origins. We will restrict this in production.
     allow_credentials=True,
     allow_methods=["*"], # Allow all methods (GET, POST, PUT, DELETE)
     allow_headers=["*"],

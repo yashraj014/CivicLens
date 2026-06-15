@@ -17,12 +17,21 @@ def register_user(user:schemas.UserCreate, db:Session = Depends(get_db)):
     if existing_user:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,detail="Email Already Registered")
     
+
+    is_auth_user = False
+    if user.authority_secret:
+        if user.authority_secret == "CityHall2024":
+            is_auth_user=True
+        else:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,detail="Invalid authority secret code")
+        
     hashed_password = auth.get_password_hash(user.password)
 
     new_user = models.User(
         email=user.email,
         hashed_password=hashed_password,
-        full_name =user.full_name
+        full_name =user.full_name,
+        is_authority=is_auth_user
     )
 
     db.add(new_user)
