@@ -119,7 +119,7 @@ const Dashboard = () => {
             </div>
 
             {/* Analytics Grid */}
-            {analytics && (
+            {/* {analytics && (
               <div className="grid grid-cols-3 gap-3 mt-4 w-full">
                 <div className="bg-blue-100 p-3 rounded-lg text-center shadow-sm border border-blue-200">
                   <p className="text-[10px] text-blue-700 font-bold uppercase tracking-wider">Total</p>
@@ -136,7 +136,7 @@ const Dashboard = () => {
                   <p className="text-xl font-black text-green-900">{analytics.by_status['Resolved'] || 0}</p>
                 </div>
               </div>
-            )}
+            )} */}
 
           </div>
           
@@ -155,6 +155,16 @@ const Dashboard = () => {
                   <h3 className="font-semibold text-gray-800">{issue.title}</h3>
                   <p className="text-sm text-gray-600 mt-1 truncate">{issue.description}</p>
                   <p className="text-xs font-medium text-blue-600 mt-2">Category: {issue.category}</p>
+                  {/* NEW: Render the image if it exists */}
+                  {issue.image_url && (
+                    <div className="mt-3 rounded-md overflow-hidden h-32 w-full bg-gray-100 border border-gray-200 shadow-inner">
+                      <img 
+                        src={issue.image_url} 
+                        alt="Issue evidence" 
+                        className="object-cover h-full w-full"
+                      />
+                    </div>
+                  )}
                   
                   <div className="mt-3 flex justify-between items-center">
                     <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-bold rounded">
