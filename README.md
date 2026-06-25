@@ -1,4 +1,4 @@
-# 🚀 CivicLens — Full-Stack Civic Infrastructure Management Platform
+# CivicLens — Full-Stack Civic Infrastructure Management Platform
 
 A modern civic-tech platform that empowers citizens to report public infrastructure issues and enables authorities to efficiently monitor, prioritize, and resolve them through an interactive geospatial dashboard.
 
